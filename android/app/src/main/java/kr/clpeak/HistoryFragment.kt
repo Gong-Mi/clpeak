@@ -10,6 +10,7 @@ import android.widget.TextView
 import androidx.fragment.app.Fragment
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.card.MaterialCardView
+import kr.clpeak.databinding.FragmentHistoryBinding
 import java.util.Date
 import java.util.Locale
 
@@ -60,7 +61,7 @@ class HistoryFragment : Fragment() {
         content.addView(label(getString(R.string.history_metric_count, run.entries.count { it.status == "ok" }, run.entries.size)))
 
         val details = LinearLayout(context).apply { orientation = LinearLayout.VERTICAL; visibility = View.GONE }
-        val expand = MaterialButton(context, null, com.google.android.material.R.attr.borderlessButtonStyle).apply {
+        val expand = MaterialButton(context, null, android.R.attr.borderlessButtonStyle).apply {
             text = getString(R.string.history_show_metrics)
             setOnClickListener {
                 val expanded = details.visibility != View.VISIBLE
