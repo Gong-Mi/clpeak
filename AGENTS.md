@@ -42,6 +42,7 @@ The CLI entry point is `src/cli/main.cpp` with its own `logger.cpp`.
 | `src/oneapi/` | oneAPI/SYCL backend: `OneapiPeak` class + SYCL kernels (inline lambdas, AOT/JIT via DPC++) |
 | `src/cpu/` | Native CPU backend: `CpuPeak` class + `std::thread` pool + per-ISA SIMD kernels (one feature TU per ISA, runtime-dispatched); cache/DRAM bandwidth + memory latency |
 | `src/cli/` | Desktop CLI: `main.cpp` |
+| `tests/` | Deterministic CTest coverage for shared result serialization and parsing |
 | `src/common/cmake/` | Version handling (`version.cmake`, `GenVersion.cmake`, `version.h.in`) |
 | `android/` | Android app (Vulkan, OpenCL, CPU) with JNI native module, its own `logger_android.cpp` |
 | `ios/` | iOS SwiftUI app with Vulkan-over-MoltenVK, Metal, and CPU backends |

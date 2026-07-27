@@ -1,14 +1,15 @@
 package kr.clpeak
 
+import android.app.Application
+import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
-import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
-class BenchmarkViewModel : ViewModel() {
+class BenchmarkViewModel(application: Application) : AndroidViewModel(application) {
 
     enum class Screen { SETUP, RESULTS }
 
@@ -32,6 +33,7 @@ class BenchmarkViewModel : ViewModel() {
 
     private val accumulated = mutableListOf<ResultEntry>()
     private val expandedKeys = mutableSetOf<String>()  // "backend|category|test"
+    private val historyStore = BenchmarkHistoryStore(application)
 
     init {
         loadCatalog()
@@ -82,6 +84,7 @@ class BenchmarkViewModel : ViewModel() {
 
         val cat = _catalog.value ?: BackendCatalog.EMPTY
 
+        val startedAtMs = System.currentTimeMillis()
         _isRunning.value = true
         _deviceInfoByBackend.value = emptyMap()
         _backends.value = emptyList()
@@ -114,6 +117,20 @@ class BenchmarkViewModel : ViewModel() {
             val result = withContext(Dispatchers.IO) { repo.runBenchmark(argv) }
             deviceJob.join()
             metricJob.join()
+
+            // Persist every attempted run, including failures before the first
+            // metric, so the history remains an audit trail rather than a
+            // successful-results-only view.
+            withContext(Dispatchers.IO) {
+                historyStore.save(
+                    BenchmarkRun(
+                        startedAtMs = startedAtMs,
+                        completedAtMs = System.currentTimeMillis(),
+                        exitCode = result,
+                        entries = accumulated.toList()
+                    )
+                )
+            }
 
             if (result != 0) {
                 _errorMsg.value = "Benchmark exited with error ($result). " +

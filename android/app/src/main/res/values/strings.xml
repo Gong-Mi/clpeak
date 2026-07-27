@@ -6,6 +6,7 @@
     <string name="about_version">Version %1$s</string>
 
     <string name="run_button_text">Run Benchmark</string>
+    <string name="menu_history">Test history</string>
     <string name="menu_about">About</string>
 
     <string name="device_info_title">Device</string>
@@ -21,4 +22,13 @@
     <string name="backend_opencl">OpenCL</string>
     <string name="backend_vulkan">Vulkan</string>
     <string name="results_title">Results</string>
+    <string name="history_title">Test history</string>
+    <string name="history_empty">No completed benchmark runs have been saved on this device.</string>
+    <string name="history_clear">Clear history</string>
+    <string name="history_completed">Completed</string>
+    <string name="history_exit_code">Exit %1$d</string>
+    <string name="history_no_metrics">No emitted metrics</string>
+    <string name="history_metric_count">%1$d measured / %2$d emitted metrics</string>
+    <string name="history_show_metrics">Show metrics</string>
+    <string name="history_hide_metrics">Hide metrics</string>
 </resources>

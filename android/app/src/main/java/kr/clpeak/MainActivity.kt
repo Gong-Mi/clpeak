@@ -27,6 +27,7 @@ class MainActivity : AppCompatActivity() {
     companion object {
         init { System.loadLibrary("clpeak") }
         private const val TAG_RESULTS = "results"
+        private const val TAG_HISTORY = "history"
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -74,6 +75,16 @@ class MainActivity : AppCompatActivity() {
         binding.toolbar.title = getString(R.string.results_title)
     }
 
+    private fun showHistory() {
+        if (viewModel.isRunning.value == true) return
+        if (supportFragmentManager.findFragmentByTag(TAG_HISTORY) != null) return
+        supportFragmentManager.beginTransaction()
+            .replace(R.id.fragment_container, HistoryFragment(), TAG_HISTORY)
+            .addToBackStack(TAG_HISTORY)
+            .commit()
+        binding.toolbar.title = getString(R.string.history_title)
+    }
+
     private fun popToSetup() {
         if (supportFragmentManager.backStackEntryCount > 0) {
             supportFragmentManager.popBackStack(
@@ -88,8 +99,10 @@ class MainActivity : AppCompatActivity() {
         val hasBackStack = supportFragmentManager.backStackEntryCount > 0
         val running = viewModel.isRunning.value == true
         supportActionBar?.setDisplayHomeAsUpEnabled(hasBackStack && !running)
-        if (!hasBackStack) {
-            binding.toolbar.title = getString(R.string.app_name)
+        binding.toolbar.title = when (supportFragmentManager.findFragmentById(R.id.fragment_container)) {
+            is HistoryFragment -> getString(R.string.history_title)
+            is ResultsFragment -> getString(R.string.results_title)
+            else -> getString(R.string.app_name)
         }
     }
 
@@ -100,14 +113,24 @@ class MainActivity : AppCompatActivity() {
 
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
         return when (item.itemId) {
-            android.R.id.home -> { viewModel.returnToSetup(); true }
+            android.R.id.home -> {
+                if (supportFragmentManager.findFragmentById(R.id.fragment_container) is HistoryFragment)
+                    supportFragmentManager.popBackStack()
+                else
+                    viewModel.returnToSetup()
+                true
+            }
+            R.id.menu_history -> { showHistory(); true }
             R.id.menu_about   -> { showAbout(); true }
             else              -> super.onOptionsItemSelected(item)
         }
     }
 
     override fun onSupportNavigateUp(): Boolean {
-        viewModel.returnToSetup()
+        if (supportFragmentManager.findFragmentById(R.id.fragment_container) is HistoryFragment)
+            supportFragmentManager.popBackStack()
+        else
+            viewModel.returnToSetup()
         return true
     }
 

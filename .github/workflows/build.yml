@@ -159,6 +159,10 @@ jobs:
           cmake -B build -DCMAKE_BUILD_TYPE=Release -DCLPEAK_PACKAGE_SUFFIX=${{ matrix.suffix }}
           cmake --build build --config Release -j4
 
+      - name: Run deterministic unit tests
+        if: ${{ !matrix.oneapi }}
+        run: ctest --test-dir build --output-on-failure -R clpeak_result_store_test
+
       # oneAPI requires icpx as CXX and `setvars.sh` on the PATH/LD_LIBRARY_PATH;
       # source it before invoking cmake/build so IntelSYCL can be located.
       - name: Configure Cmake & Build oneAPI
@@ -168,6 +172,13 @@ jobs:
           source /opt/intel/oneapi/setvars.sh
           cmake -B build -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_COMPILER=icpx -DCLPEAK_PACKAGE_SUFFIX=${{ matrix.suffix }}
           cmake --build build --config Release -j4
+
+      - name: Run deterministic unit tests (oneAPI)
+        if: matrix.oneapi
+        shell: bash
+        run: |
+          source /opt/intel/oneapi/setvars.sh
+          ctest --test-dir build --output-on-failure -R clpeak_result_store_test
 
       - name: Run
         if: ${{ !matrix.cuda && !matrix.oneapi }}
@@ -265,6 +276,9 @@ jobs:
             -DCMAKE_C_COMPILER=gcc -DCMAKE_CXX_COMPILER=g++
           cmake --build build --config Release -j4
 
+      - name: Run deterministic unit tests
+        run: ctest --test-dir build --output-on-failure -R clpeak_result_store_test
+
       - name: Run
         run: ./build/clpeak
 
@@ -299,6 +313,12 @@ jobs:
 
       - name: Accept Android SDK licenses
         run: yes | sdkmanager --licenses || true
+
+      - name: Run Android JVM unit tests
+        working-directory: android
+        run: |
+          chmod +x gradlew
+          ./gradlew testDebugUnitTest
 
       - name: Build release APK
         working-directory: android

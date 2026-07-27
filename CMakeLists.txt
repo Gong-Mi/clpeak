@@ -269,7 +269,13 @@ message(STATUS "")
 install(TARGETS clpeak RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
 install(FILES LICENSE DESTINATION "${CMAKE_INSTALL_DATAROOTDIR}/clpeak")
 enable_testing()
-add_test(clpeak_test_run clpeak)
+# The benchmark executable is a hardware integration smoke test.  Keep it
+# separate from deterministic unit tests so CI reports serialization/parser
+# regressions without requiring a GPU or relying on calibrated measurements.
+add_executable(clpeak_result_store_test tests/result_store_test.cpp)
+target_link_libraries(clpeak_result_store_test PRIVATE peak_common)
+add_test(NAME clpeak_result_store_test COMMAND clpeak_result_store_test)
+add_test(NAME clpeak_test_run COMMAND clpeak)
 
 # --- CPack: self-contained, clearly-named zip per build --------------------
 # Name: clpeak-<version>-<os>-<arch>[-<backend>], e.g.
