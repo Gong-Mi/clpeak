@@ -161,7 +161,7 @@ jobs:
 
       - name: Run deterministic unit tests
         if: ${{ !matrix.oneapi }}
-        run: ctest --test-dir build --output-on-failure -R clpeak_result_store_test
+        run: ctest --test-dir build -C Release --output-on-failure -R clpeak_result_store_test
 
       # oneAPI requires icpx as CXX and `setvars.sh` on the PATH/LD_LIBRARY_PATH;
       # source it before invoking cmake/build so IntelSYCL can be located.
@@ -178,7 +178,7 @@ jobs:
         shell: bash
         run: |
           source /opt/intel/oneapi/setvars.sh
-          ctest --test-dir build --output-on-failure -R clpeak_result_store_test
+          ctest --test-dir build -C Release --output-on-failure -R clpeak_result_store_test
 
       - name: Run
         if: ${{ !matrix.cuda && !matrix.oneapi }}
@@ -277,7 +277,7 @@ jobs:
           cmake --build build --config Release -j4
 
       - name: Run deterministic unit tests
-        run: ctest --test-dir build --output-on-failure -R clpeak_result_store_test
+        run: ctest --test-dir build -C Release --output-on-failure -R clpeak_result_store_test
 
       - name: Run
         run: ./build/clpeak
