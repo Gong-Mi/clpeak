@@ -1,0 +1,90 @@
+# Fork-only: build the Android APK with a host glslc, so the cooperative-matrix
+# shaders (and the crash gate that withholds the fp16 f16acc row from
+# Qualcomm's driver) are actually compiled in.
+#
+# Upstream's .github/workflows/android.yml is a sanity build: no host Vulkan SDK
+# is installed, so src/vulkan/cmake/CompileShaders.cmake falls back to the NDK's
+# bundled glslc (shaderc v2022.x), which rejects GL_KHR_cooperative_matrix and
+# every bfloat16/fp8/int8-dot shader.  Those shaders are skipped with a warning
+# and the rows behind them compile out -- the APK then has no coopmat test at
+# all.  This job installs a modern glslc first, and asserts afterwards that the
+# rows and the gate string really landed in the .so.
+#
+# Never runs on upstream (the `if` on the job), never touches upstream's files.
+name: Android gate build (fork)
+
+on:
+  workflow_dispatch:
+
+jobs:
+  apk:
+    if: github.repository != 'krrishnarraj/clpeak'
+    name: Android APK with host glslc
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          submodules: recursive
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: "17"
+          distribution: temurin
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v4
+        with:
+          packages: ''
+
+      - name: Accept Android SDK licenses
+        run: yes | sdkmanager --licenses || true
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Install a host glslc (newer than the NDK's bundled one)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y glslc || sudo apt-get install -y shaderc
+          which glslc
+          glslc --version
+          echo "VULKAN_SDK_BIN=$(dirname "$(which glslc)")" >> "$GITHUB_ENV"
+
+      - name: Build release APK
+        working-directory: app
+        run: |
+          flutter pub get
+          flutter build apk --release
+
+      - name: Assert the coopmat rows and the Qualcomm gate are in the APK
+        run: |
+          set -e
+          APK=app/build/app/outputs/flutter-apk/app-release.apk
+          rm -rf /tmp/apkx && mkdir -p /tmp/apkx
+          unzip -o -q "$APK" 'lib/arm64-v8a/libclpeak_ffi.so' -d /tmp/apkx
+          SO=/tmp/apkx/lib/arm64-v8a/libclpeak_ffi.so
+          echo "--- rows:"
+          grep -a -c 'Cooperative matrix' "$SO" || true
+          echo "--- fp16 f16acc row:"
+          grep -a -c 'fp16 f16acc' "$SO" || true
+          echo "--- Qualcomm gate text:"
+          grep -a -c 'segfault in its shader compiler' "$SO" || true
+          grep -a -o "Qualcomm's Vulkan driver crashes the process building this pipeline" "$SO" || true
+          echo "--- version stamp:"
+          grep -a -o -E '[0-9a-f]{7}' "$SO" | head -1 || true
+          test "$(grep -a -c 'Cooperative matrix' "$SO")" -ge 1
+          test "$(grep -a -c 'segfault in its shader compiler' "$SO")" -ge 1
+
+      - name: Upload release APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: clpeak-android-gate
+          path: app/build/app/outputs/flutter-apk/app-release.apk
